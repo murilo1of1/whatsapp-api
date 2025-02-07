@@ -1,49 +1,103 @@
-const express = require("express");
-const cors = require("cors");
-const bodyparser = require("body-parser");
-const bot = require("./bot");
-
+const express = require('express');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 const port = 3000;
 
-app.use(cors());
-app.use(bodyparser.json());
+app.use(express.json()); // Para poder processar o corpo das requisições em JSON
 
-app.get("/", (req, res) => {
-    res.send("Api funcionando");  
+const sessionsDir = path.join(__dirname, 'sessions'); // Diretório onde as sessões estão armazenadas
+// Armazenar as sessões ativas e os QR Codes
+let sessions = {};
+
+// Função para criar um cliente para um número de telefone específico
+function createClient(sessionId) {
+    const client = new Client({
+        authStrategy: new LocalAuth({ clientId: sessionId, dataPath: sessionsDir }), // Usar ID único para a sessão
+    });
+
+    client.on('qr', (qr) => {
+        // Armazena o QR Code na sessão
+        sessions[sessionId].qrCode = qr;
+    });
+
+    client.on('ready', () => {
+        console.log(`${sessionId} está pronto!`);
+    });
+
+    client.on('authenticated', () => {
+        console.log(`Sessão de ${sessionId} autenticada.`);
+    });
+
+    client.initialize();
+
+    return client;
+}
+
+function loadExistingSessions() {
+    // Verifica se o diretório de sessões existe
+    if (fs.existsSync(sessionsDir)) {
+        // Lê todos os arquivos do diretório de sessões
+        const sessionFiles = fs.readdirSync(sessionsDir);
+
+        // Para cada arquivo de sessão, cria uma nova sessão
+        sessionFiles.forEach((file) => {
+            const sessionId = path.parse(file).name.split('-')[1];
+            const client = createClient(sessionId); // Cria e inicializa o cliente para a sessão
+            sessions[sessionId] = client; // Inicializa a estrutura da sessão
+        });
+    }
+}
+
+// Chama a função para carregar as sessões existentes ao iniciar o servidor
+loadExistingSessions();
+
+// Endpoint para iniciar uma sessão
+app.get('/start-session/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+
+    if (sessions[sessionId]) {
+        return res.status(400).json({ message: 'Sessão já está ativa.' });
+    }
+
+    const client = createClient(sessionId);
+    sessions[sessionId] = client;
+
+    res.status(200).json({ message: `Sessão para o número ${sessionId} iniciada.` });
+});
+
+// Endpoint para enviar mensagem
+app.post('/send-message/:sessionId', async (req, res) => {
+    const { sessionId } = req.params;
+    const { to, message } = req.body;
+
+    if (!sessions[sessionId]) {
+        return res.status(400).json({ message: 'Sessão não encontrada.' });
+    }
+
+    const client = sessions[sessionId];
+
+    try {
+        await client.sendMessage(`${to}@c.us`, message);
+        res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
+    }
+});
+
+// Endpoint para obter o QR Code de uma sessão
+app.get('/get-qrcode/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+
+    if (!sessions[sessionId] || !sessions[sessionId].qrCode) {
+        return res.status(404).json({ message: 'QR Code não disponível ou sessão não encontrada.' });
+    }
+
+    const qrCode = sessions[sessionId].qrCode;
+    res.status(200).json({ qrCode });
 });
 
 app.listen(port, () => {
-    console.log(`Server rodando na porta ${port}`);
-});
-
-const botInstance = new bot.Bot();
-
-app.get("/initialize", async (req, res) => {
-    console.log("Inicializando o bot");
-    await botInstance.initialize();
-    res.json({ sucess: true, message: "Bot inicializado" });
-});
-
-app.get("/qrcode", (req, res) => {
-    console.log("Retornando QR Code");
-    res.json({ qrcode: botInstance.getQRCode() });
-});
-
-app.post("/send", (req, res) => {
-    const { phone, message } = req.body;
-
-    if (!phone || !message) {
-        return res.status(400).json({ success: false, message: "Número e mensagem são obrigatórios!" });
-    }
-
-    botInstance.client.sendMessage(phone, message)
-        .then((response) => {
-            console.log("Mensagem enviada:", response);
-            res.status(200).json({ success: true, message: "Mensagem enviada com sucesso!" });
-        })
-        .catch((error) => {
-            console.error("Erro ao enviar mensagem:", error);
-            res.status(500).json({ success: false, message: "Erro ao enviar mensagem!" });
-        });
+    console.log(`API rodando na porta ${port}`);
 });
