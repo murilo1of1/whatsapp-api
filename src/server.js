@@ -70,7 +70,7 @@ app.get('/start-session/:sessionId', (req, res) => {
 // Endpoint para enviar mensagem
 app.post('/send-message/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
-    const { to, message } = req.body;
+    const { para, mensagem } = req.body;
 
     if (!sessions[sessionId]) {
         return res.status(400).json({ message: 'Sessão não encontrada.' });
@@ -78,8 +78,12 @@ app.post('/send-message/:sessionId', async (req, res) => {
 
     const client = sessions[sessionId];
 
+    console.log(`✅ Enviando mensagem com sessionId: ${sessionId}`);
+    console.log(`✅ Número de destino: ${para}`);
+    console.log(`✅ Mensagem: ${mensagem}`);
+
     try {
-        await client.sendMessage(`${to}@c.us`, message);
+        await client.sendMessage(`${para}@c.us`, mensagem);
         res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
     } catch (error) {
         res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
