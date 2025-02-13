@@ -1,5 +1,5 @@
 const express = require('express');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
 const path = require('path');
 const app = express();
@@ -67,8 +67,43 @@ app.get('/start-session/:sessionId', (req, res) => {
     res.status(200).json({ message: `Sessão para o número ${sessionId} iniciada.` });
 });
 
-// Endpoint para enviar mensagem
+//alteracao com envio de arquivo
 app.post('/send-message/:sessionId', async (req, res) => {
+    const { sessionId } = req.params;
+    const { para, mensagem, arquivoBase64 } = req.body;
+
+    if (!sessions[sessionId]) {
+        return res.status(400).json({ message: 'Sessão não encontrada.' });
+    }
+
+    const client = sessions[sessionId];
+
+    console.log(`✅ Enviando mensagem com sessionId: ${sessionId}`);
+    console.log(`✅ Número de destino: ${para}`);
+    console.log(`✅ Mensagem: ${mensagem}`);
+    console.log(`✅ Arquivo recebido? ${arquivoBase64 ? 'Sim' : 'Não'}`);
+
+    try {
+        if (arquivoBase64) {
+            // Criar a mídia a partir do Base64
+            const media = new MessageMedia('application/pdf', arquivoBase64);
+
+            // Enviar a mensagem com o arquivo
+            await client.sendMessage(`${para}@c.us`, media, { caption: mensagem });
+        } else {
+            // Enviar apenas a mensagem de texto
+            await client.sendMessage(`${para}@c.us`, mensagem);
+        }
+
+        res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
+    } catch (error) {
+        console.error('❌ Erro ao enviar mensagem:', error);
+        res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
+    }
+});
+
+// Endpoint para enviar mensagem
+/* app.post('/send-message/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     const { para, mensagem } = req.body;
 
@@ -88,7 +123,7 @@ app.post('/send-message/:sessionId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
     }
-});
+}); */
 
 // Endpoint para obter o QR Code de uma sessão
 app.get('/get-qrcode/:sessionId', (req, res) => {
