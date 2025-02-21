@@ -72,16 +72,15 @@ app.post('/send-message/:sessionId', async (req, res) => {
 
     const client = sessions[sessionId];
 
-    // Verifica se a sessão está conectada
     if (!client || !client.info || !client.info.wid) {
         return res.status(400).json({ message: 'Sessão desconectada ou inválida.' });
     }
 
-    console.log(`✅ Enviando mensagem com sessionId: ${sessionId}`);
-    console.log(`✅ Número de destino: ${para}`);
-    console.log(`✅ Nome do arquivo: ${nomeArquivo || 'Nenhum'}`);
-    console.log(`✅ Arquivo recebido? ${arquivoBase64 ? 'Sim' : 'Não'}`);
-    console.log(`✅ Mensagem: ${mensagem || 'Nenhuma'}`);
+    console.log(`Enviando mensagem com sessionId: ${sessionId}`);
+    console.log(`Número de destino: ${para}`);
+    console.log(`Nome do arquivo: ${nomeArquivo || 'Nenhum'}`);
+    console.log(`Arquivo recebido? ${arquivoBase64 ? 'Sim' : 'Não'}`);
+    console.log(`Mensagem: ${mensagem || 'Nenhuma'}`);
 
     try {
         if (arquivoBase64 && nomeArquivo) {
@@ -99,7 +98,7 @@ app.post('/send-message/:sessionId', async (req, res) => {
 
         res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
     } catch (error) {
-        console.error('❌ Erro ao enviar mensagem:', error);
+        console.error('Erro ao enviar mensagem:', error);
         res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
     }
 });
