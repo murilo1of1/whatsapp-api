@@ -5,7 +5,7 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
-app.use(express.json({ limit: '50mb' })); // Ajuste o limite para 50MB
+app.use(express.json({ limit: '50mb' }));
 
 
 const sessionsDir = path.join(__dirname, 'sessions'); // Diretório onde as sessões estão armazenadas
@@ -72,6 +72,11 @@ app.post('/send-message/:sessionId', async (req, res) => {
 
     const client = sessions[sessionId];
 
+    // Verifica se a sessão está conectada
+    if (!client || !client.info || !client.info.wid) {
+        return res.status(400).json({ message: 'Sessão desconectada ou inválida.' });
+    }
+
     console.log(`✅ Enviando mensagem com sessionId: ${sessionId}`);
     console.log(`✅ Número de destino: ${para}`);
     console.log(`✅ Nome do arquivo: ${nomeArquivo || 'Nenhum'}`);
@@ -98,6 +103,7 @@ app.post('/send-message/:sessionId', async (req, res) => {
         res.status(500).json({ message: 'Erro ao enviar mensagem.', error: error.message });
     }
 });
+
 
 // Endpoint para obter o QR Code de uma sessão
 app.get('/get-qrcode/:sessionId', (req, res) => {
