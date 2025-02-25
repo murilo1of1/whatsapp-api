@@ -15,6 +15,7 @@ let sessions = {}; // Armazena as sessões ativas e os QR Codes
 function createClient(sessionId) {
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: sessionId, dataPath: sessionsDir }), // Usa ID único para a sessão
+        puppeteer: {headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-extensions']}
     });
 
     client.on('qr', (qr) => {
