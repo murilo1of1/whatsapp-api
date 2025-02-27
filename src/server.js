@@ -67,15 +67,54 @@ app.post('/send-message/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     const { para, nomeArquivo, arquivoBase64, mensagem } = req.body;
 
+    console.log(para, nomeArquivo, arquivoBase64, mensagem);
+
     if (!sessions[sessionId]) {
         return res.status(400).json({ message: 'Sessão não encontrada.' });
     }
 
     const client = sessions[sessionId];
 
-    if (!client || !client.info || !client.info.wid) {
-        return res.status(400).json({ message: 'Sessão desconectada ou inválida.' });
+    // Busca o nome correto da pasta da sessão
+    const sessionFiles = fs.readdirSync(sessionsDir);
+    const sessionFolder = sessionFiles.find(folder => folder.includes(sessionId));
+
+    if (!sessionFolder) {
+        console.error(`A sessão ${sessionId} não foi encontrada no servidor.`);
+        return res.status(400).json({ message: `Sessão ${sessionId} não encontrada no servidor.` });
     }
+
+    const sessionPath = path.join(sessionsDir, sessionFolder);
+    console.log(`Sessão localizada: ${sessionPath}`);
+
+    // Verifica se há arquivos de autenticação na pasta
+    const sessionFilesInFolder = fs.readdirSync(sessionPath);
+    if (sessionFilesInFolder.length === 0) {
+        console.error(`A pasta da sessão ${sessionId} está vazia.`);
+        return res.status(400).json({ message: `Sessão ${sessionId} não possui arquivos de autenticação.` });
+    }
+
+    
+    // Se o cliente não existir, tenta recriá-lo
+    if (!client) {
+        console.error(`Cliente da sessão ${sessionId} não foi encontrado. Criando novo cliente...`);
+        sessions[sessionId] = createClient(sessionId);
+        return res.status(202).json({ message: 'Sessão não encontrada. Criando uma nova, tente novamente em alguns segundos.', status: 'restarting' });
+    }
+    
+    // Verifica se o cliente está autenticado corretamente
+    if (!client.info || !client.info.wid) {
+        console.error(`Sessão ${sessionId} não está autenticada. Tentando reiniciar...`);
+        
+        // Reinicia a sessão
+        client.initialize();
+    
+        return res.status(202).json({ message: 'Sessão não estava autenticada. Tentamos reiniciar, tente novamente em alguns segundos.', status: 'restarting' });
+    }
+    
+    // Se passou por todas as verificações, significa que a sessão está OK
+    console.log(`Sessão ${sessionId} está ativa e pronta para uso.`);
+    
 
     console.log(`Enviando mensagem com sessionId: ${sessionId}`);
     console.log(`Número de destino: ${para}`);
