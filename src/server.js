@@ -1,3 +1,4 @@
+
 const express = require('express');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
@@ -64,10 +65,13 @@ app.get('/start-session/:sessionId', (req, res) => {
 
 // Endpoint para enviar mensagens e arquivos
 app.post('/send-message/:sessionId', async (req, res) => {
+    console.log('passo1');
     const { sessionId } = req.params;
     const { para, nomeArquivo, arquivoBase64, mensagem } = req.body;
 
-    console.log(para, nomeArquivo, arquivoBase64, mensagem);
+    console.log('passo2');
+
+/*
 
     if (!sessions[sessionId]) {
         return res.status(400).json({ message: 'Sessão não encontrada.' });
@@ -94,14 +98,15 @@ app.post('/send-message/:sessionId', async (req, res) => {
         return res.status(400).json({ message: `Sessão ${sessionId} não possui arquivos de autenticação.` });
     }
 
-    
+
     // Se o cliente não existir, tenta recriá-lo
     if (!client) {
         console.error(`Cliente da sessão ${sessionId} não foi encontrado. Criando novo cliente...`);
         sessions[sessionId] = createClient(sessionId);
         return res.status(202).json({ message: 'Sessão não encontrada. Criando uma nova, tente novamente em alguns segundos.', status: 'restarting' });
     }
-    
+
+
     // Verifica se o cliente está autenticado corretamente
     if (!client.info || !client.info.wid) {
         console.error(`Sessão ${sessionId} não está autenticada. Tentando reiniciar...`);
@@ -111,28 +116,22 @@ app.post('/send-message/:sessionId', async (req, res) => {
     
         return res.status(202).json({ message: 'Sessão não estava autenticada. Tentamos reiniciar, tente novamente em alguns segundos.', status: 'restarting' });
     }
-    
+*/    
     // Se passou por todas as verificações, significa que a sessão está OK
-    console.log(`Sessão ${sessionId} está ativa e pronta para uso.`);
-    
-
-    console.log(`Enviando mensagem com sessionId: ${sessionId}`);
-    console.log(`Número de destino: ${para}`);
-    console.log(`Nome do arquivo: ${nomeArquivo || 'Nenhum'}`);
-    console.log(`Arquivo recebido? ${arquivoBase64 ? 'Sim' : 'Não'}`);
-    console.log(`Mensagem: ${mensagem || 'Nenhuma'}`);
-
     try {
         if (arquivoBase64 && nomeArquivo) {
+	    console.log('passo3.1');
             // Criar a mídia com o nome do arquivo
             const media = new MessageMedia('application/pdf', arquivoBase64, nomeArquivo);
 
             // Enviar o arquivo sem legenda
             await client.sendMessage(`${para}@c.us`, media);
         } else if (mensagem) {
+            console.log('passo3.2');
             // Enviar apenas a mensagem de texto
             await client.sendMessage(`${para}@c.us`, mensagem);
         } else {
+            console.log('passo3.3');
             return res.status(400).json({ message: "Nenhuma mensagem ou arquivo enviado." });
         }
 
