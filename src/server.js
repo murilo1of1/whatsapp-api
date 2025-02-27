@@ -71,8 +71,6 @@ app.post('/send-message/:sessionId', async (req, res) => {
 
     console.log('passo2');
 
-/*
-
     if (!sessions[sessionId]) {
         return res.status(400).json({ message: 'Sessão não encontrada.' });
     }
@@ -116,7 +114,7 @@ app.post('/send-message/:sessionId', async (req, res) => {
     
         return res.status(202).json({ message: 'Sessão não estava autenticada. Tentamos reiniciar, tente novamente em alguns segundos.', status: 'restarting' });
     }
-*/    
+    
     // Se passou por todas as verificações, significa que a sessão está OK
     try {
         if (arquivoBase64 && nomeArquivo) {
